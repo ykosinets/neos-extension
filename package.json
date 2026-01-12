@@ -1,0 +1,37 @@
+{
+  "name": "neos-fusion-tools",
+  "displayName": "Neos Fusion Tools",
+  "description": "Advanced language support for Neos Fusion",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "activationEvents": [
+    "onLanguage:fusion"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "fusion",
+        "aliases": [
+          "Fusion",
+          "Neos Fusion"
+        ],
+        "extensions": [
+          ".fusion"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}
