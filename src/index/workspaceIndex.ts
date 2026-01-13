@@ -56,7 +56,11 @@ export class WorkspaceIndex {
     /**
      * Index a single Fusion file.
      */
-    private async indexFusionFile(uri: vscode.Uri): Promise<void> {
+    private async indexFusionFile(
+        uri: vscode.Uri,
+        sourceOverride?: string,
+        options?: { live?: boolean }
+    ): Promise<boolean> {
         const uriKey = uri.toString();
 
         // Remove previously indexed data for this file
@@ -65,15 +69,10 @@ export class WorkspaceIndex {
             this.filePrototypeMap.delete(uriKey);
         }
 
-        if (this.filePropMap.has(uriKey)) {
-            this.propIndex.removeByUri(uri);
-            this.filePropMap.delete(uriKey);
-            this.diagnostics.delete(uriKey);
-        }
-
         try {
-            const document = await vscode.workspace.openTextDocument(uri);
-            const source = document.getText();
+            const source =
+                sourceOverride ??
+                (await vscode.workspace.openTextDocument(uri)).getText();
 
             // Index prototypes
             this.prototypeIndex.indexDocument(uri, source);
@@ -85,18 +84,59 @@ export class WorkspaceIndex {
             const parsed = parsePropDefinitions(source);
             const propDefinitions = parsed.props;
 
+            if (options?.live && propDefinitions.length === 0) {
+                // Do not destroy existing index on transient invalid edits
+                return false;
+            }
+
+            if (this.filePropMap.has(uriKey)) {
+                this.propIndex.removeByUri(uri);
+                this.filePropMap.delete(uriKey);
+                this.diagnostics.delete(uriKey);
+            }
+
+            const document =
+                sourceOverride
+                    ? await vscode.workspace.openTextDocument(uri)
+                    : await vscode.workspace.openTextDocument(uri);
+
             this.diagnostics.set(
                 uriKey,
-                parsed.warnings.map(w =>
-                    new vscode.Diagnostic(
-                        new vscode.Range(
-                            new vscode.Position(w.line - 1, w.column - 1),
-                            new vscode.Position(w.line - 1, w.column)
-                        ),
+                parsed.warnings.map(w => {
+                    const keyMatch = w.message.match(/"([^"]+)"/);
+                    const warnedKey = keyMatch ? keyMatch[1] : null;
+
+                    let matchingDef;
+
+                    if (warnedKey) {
+                        const matches = propDefinitions
+                            .filter(def => def.propPath[def.propPath.length - 1] === warnedKey)
+                            .sort((a, b) => a.start - b.start);
+
+                        // Always underline the duplicate (last definition)
+                        if (matches.length > 1) {
+                            matchingDef = matches[matches.length - 1];
+                        } else {
+                            matchingDef = matches[0];
+                        }
+                    }
+
+                    const range = matchingDef
+                        ? new vscode.Range(
+                              document.positionAt(matchingDef.start),
+                              document.positionAt(matchingDef.end)
+                          )
+                        : new vscode.Range(
+                              new vscode.Position(w.line - 1, w.column - 1),
+                              new vscode.Position(w.line - 1, w.column)
+                          );
+
+                    return new vscode.Diagnostic(
+                        range,
                         w.message,
                         vscode.DiagnosticSeverity.Warning
-                    )
-                )
+                    );
+                })
             );
 
             // Debug: show each indexed prop with its line number
@@ -120,11 +160,14 @@ export class WorkspaceIndex {
             }
 
             this.filePropMap.set(uriKey, allProps);
+
+            return true;
         } catch (error) {
             console.error(
                 `[FusionIndex] Failed to index file ${uri.fsPath}`,
                 error
             );
+            return false;
         }
     }
 
@@ -153,7 +196,11 @@ export class WorkspaceIndex {
         return this.diagnostics.get(uri.toString()) ?? [];
     }
 
-    reindexDocument(uri: vscode.Uri, _source: string): void {
-        this.indexFusionFile(uri);
+    async reindexDocument(
+        uri: vscode.Uri,
+        source: string,
+        options?: { live?: boolean }
+    ): Promise<boolean> {
+        return this.indexFusionFile(uri, source, options);
     }
 }
