@@ -11,5 +11,13 @@ This is the initial scaffold.
 <hr>
 
 ### Instalation
-```code --install-extension neos-fusion-tools-0.0.1.vsix```
+- A (via UI)
+	1.	Open Cursor
+	2.	Extensions panel
+	3.	⋯ → Install from VSIX
+	4.	Select neos-fusion-tools-{version}.vsix 
+- B (via terminal/console)
+    1.  Ctrl/Cmd + Shift + P → Shell Command: Install "code" command (in PATH)
+    2.  ```cd {path-to}/neos-fusion-tools-{version}.vsix``` 
+    3.  ```code --install-extension neos-fusion-tools-{version}.vsix```
 <hr>
