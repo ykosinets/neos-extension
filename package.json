@@ -3,12 +3,10 @@
   "displayName": "Neos Fusion Tools",
   "description": "Advanced language support for Neos Fusion",
   "version": "0.0.1",
+  "publisher": "ykosinets",
   "engines": {
     "vscode": "^1.85.0"
   },
-  "activationEvents": [
-    "onLanguage:fusion"
-  ],
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
