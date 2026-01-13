@@ -11,5 +11,5 @@ This is the initial scaffold.
 <hr>
 
 ### Instalation
-```code --install-extension neosish-0.1.0.vsix```
+```code --install-extension neos-fusion-tools-0.0.1.vsix```
 <hr>
